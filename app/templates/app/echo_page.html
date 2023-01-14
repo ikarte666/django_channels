@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>WebSocket Echo</title>
+</head>
+<body>
+<script>
+    const ws = new WebSocket("ws://localhost:8000/ws/echo/");
+    {# send api는 텍스트 혹은 바이너리 데이터만 전송 가능하므로 직렬화를 꼭 시켜야 함 #}
+    {# JSON.stringify를 활용하여 직렬화 #}
+    {# 서버단에서도 문자열 오브젝트를 역직렬화 하는 과정이 꼭 필요함(JSON.parse) #}
+    ws.onopen = () => {
+        console.log("웹소켓 서버에 접속 성공")
+    };
+    ws.onmessage = (event) => {
+        {# EchoConsumer에서 날아온 데이터(문자열) #}
+        const json_string = event.data;
+        const obj = JSON.parse(json_string)
+        console.log("메세지 수신 : ", obj)
+    };
+    ws.onclose = (event) => {
+        if(event.wasClean){
+            console.log("ws.close()에 의한 연결 종료")
+        }else{
+            console.log("웹소켓 서버와 네트워크의 연결 단절")
+        }
+    };
+    ws.onerror = () => {
+        console.log("웹소켓 연결 에러")
+    };
+
+    function sendObject(){
+        obj = JSON.stringify({
+            content: "This is the content",
+            user : "Annonymous user"
+        });
+        ws.send(obj);
+    }
+
+    window.onload = () => {
+        btn = document.getElementById("sendButton");
+        btn.addEventListener("click", sendObject);
+    }
+</script>
+
+WebSocket Echo
+
+<button id="sendButton">send</button>
+
+
+</body>
+</html>

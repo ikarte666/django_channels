@@ -1,0 +1,76 @@
+{% extends "app/base.html" %}
+
+{% block content %}
+    <div class="container">
+        <h1></h1>
+        <div class="row">
+            {% for post in post_list %}
+                {% include "app/post_partial.html" with post=post only %}
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra-body %}
+    <script>
+        {# 라이브 블로그 주소로 websocket 연결 open #}
+        let ws = new WebSocket("ws://localhost:8000/ws/liveblog/");
+
+        const connect = () => {
+            ws = new WebSocket(ws.url);
+        }
+
+        const post_created = (post_id, post_partial_url) => {
+            fetch(post_partial_url).then(response => response.text()).then(html => {
+                document.querySelector("#post-list").insertAdjacentHTML("afterbegin", html);
+            });
+        }
+
+        const post_updated = (post_id, post_partial_url) => {
+            fetch(post_partial_url).then(res => res.text())
+                .then(html => {
+                    const css_selector = `[data-post-id="${post_id}"]`;
+                    document.querySelector(css_selector).outerHTML = html;
+                })
+        }
+
+        const post_deleted = (post_id) => {
+            const css_selector = `[data-post-id="${post_id}"]`;
+            document.querySelector(css_selector).remove();
+        }
+
+        ws.onopen = () => {
+            console.log("Connection opened");
+        }
+        ws.onclose = (event) => {
+            if(!event.wasClean){
+                console.log("Network Error");
+
+                connect();
+            }
+        }
+        ws.onerror = () => {
+            console.log("Connection Error");
+        }
+        ws.onmessage = (event) => {
+            const message_json = event.data;
+            console.log("Received Data : ", message_json);
+
+            const {type, post_id, post_partial_url} = JSON.parse(message_json);
+
+            switch(type){
+                case "liveblog.post.created":
+                    post_created(post_id, post_partial_url);
+                    break;
+                case "liveblog.post.updated":
+                    post_updated(post_id, post_partial_url);
+                    break;
+                case "liveblog.post.deleted":
+                    post_deleted(post_id);
+                    break;
+                default:
+                    console.error(`Invalid message type : ${type}`);
+            }
+        }
+    </script>
+{% endblock %}
