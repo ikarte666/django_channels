@@ -13,6 +13,14 @@
         max-width: 80%;
         word-wrap: break-word;
     }
+    .chat-message.me{
+        text-align: right;
+    }
+    .chat-message.me > div {
+        background-color: #1f8cff;
+        color: #fff;
+        text-align: left;
+    }
     </style>
 {% endblock %}
 
@@ -39,7 +47,29 @@
 
     <hr />
 
-    <a href="{% url 'chat:index' %}">대기실로</a>
+    <a href="{% url 'chat:index' %}" class="btn btn-primary">대기실로 이동</a>
+    
+    {% if request.user == room.owner %}
+        <a href="{% url 'chat:room_delete' room.pk %}" class="btn btn-danger">채팅방 삭제</a>
+    {% endif %}
+
+    {# 모달 #}
+    <div class="modal fade" id="staticBackdrop" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="staticBackdropLabel">Notification</h5>
+          </div>
+          <div class="modal-body">
+            ...
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
 {% endblock %}
 
 {% block extra-script %}
@@ -73,10 +103,10 @@
             const message_json = event.data;
             console.log(`메세지 수신 : ${message_json}`);
 
-            const {type, message} = JSON.parse(message_json);
+            const {type, message, sender} = JSON.parse(message_json);
             switch(type){
                 case "chat.message":
-                    this.append_message(message);
+                    this.append_message(message, sender);
                     break;
                 default:
                     console.error(`유효하지 않은 메세지 타입 : ${type}`);
@@ -86,6 +116,14 @@
 
         },
         onclose(event){
+            const close_code = event.code;
+
+            if(close_code === 4000){
+                this.modal("채팅방이 삭제되었습니다. 대기실로 이동합니다.", ()=>{
+                    window.location.href = "{% url "chat:index" %}";
+                })
+            }
+
             if(!event.wasClean){
                 console.log("서버 접속 불가");
                 if(this.retry < 3){
@@ -101,9 +139,16 @@
 
             }
         },
-        append_message(message){
+        append_message(message, sender){
             const element = document.createElement("div");
             element.className = "chat-message";
+
+            let footer = "";
+            if(sender === "{{ user.username }}"){
+                element.className += " me";
+            }else if(sender){
+                footer = ` from ${sender}`;
+            }
 
             const wrapper = document.createElement("div");
             wrapper.textContent = message;
@@ -127,6 +172,21 @@
                 message,
             }));
         },
+        modal(message, modal_handler){
+            const modal_element = document.querySelector("#staticBackdrop");
+            const body_element = modal_element.querySelector(".modal-body");
+            const button_element = modal_element.querySelector(".modal-footer button");
+
+            body_element.textContent = message;
+
+            button_element.addEventListener("click", ()=>{
+                if(modal_handler) modal_handler();
+                modal.hide();
+            });
+
+            const modal = new bootstrap.Modal(modal_element);
+            modal.show();
+        }
     };
     handlers.init();
 

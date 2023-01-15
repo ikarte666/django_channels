@@ -38,8 +38,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # local apps
-    "app",
     "chat",
+    "accounts",
 ]
 
 MIDDLEWARE = [
@@ -57,7 +57,9 @@ ROOT_URLCONF = "channelss.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [
+            BASE_DIR / "channelss" / "templates",
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -84,7 +86,6 @@ DATABASES = {
 }
 
 if "CHANNEL_LAYER_REDIS_URL" in env:
-    # 환경변수에서 가져온것을 오브젝트로 파싱한 값
     channel_layer_redis = env.db_url("CHANNEL_LAYER_REDIS_URL")
     # # 채널 레이어 설정
     # CHANNEL_LAYERS = {
@@ -137,7 +138,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "ko-kr"
 
 TIME_ZONE = "UTC"
 
